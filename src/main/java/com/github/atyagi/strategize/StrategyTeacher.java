@@ -1,4 +1,4 @@
-package org.atyagi.strategies;
+package com.github.atyagi.strategize;
 
 public class StrategyTeacher {
 

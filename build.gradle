@@ -1,20 +1,107 @@
-// Apply the java plugin to add support for Java
 apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
-// In this section you declare where to find the dependencies of your project
+sourceCompatibility = '1.8'
+group = "org.atyagi"
+archivesBaseName = "strategize"
+version = "1.4.7"
+
 repositories {
-    // Use 'jcenter' for resolving your dependencies.
     jcenter()
+    mavenCentral()
 }
 
-// In this section you declare the dependencies for your production and test code
+configurations {
+    markdownDoclet
+}
+
 dependencies {
-    // The production code uses the SLF4J logging API at compile time
+    markdownDoclet 'ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1'
+
+    // Production level dependencies
     compile 'org.slf4j:slf4j-api:1.7.12'
     compile 'com.google.inject:guice:4.0'
     compile 'com.google.guava:guava:18.0'
     compile 'org.reflections:reflections:0.9.10'
 
-    // Declare the dependency for your favourite test framework you want to use in your tests.
-    testCompile 'org.testng:testng:6.8.1'
+    // Test requirements
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.assertj:assertj-core:3.2.0'
+    testCompile 'org.mockito:mockito-core:1.10.19'
+}
+
+javadoc.options {
+    docletpath = configurations.markdownDoclet.files.asType(List) // gradle should relly make this simpler
+    doclet = "ch.raffael.doclets.pegdown.PegdownDoclet"
+    addStringOption("parse-timeout", "10")
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives jar
+
+    archives javadocJar
+    archives sourcesJar
+}
+
+signing {
+    required { gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            def user = hasProperty('sonatypeUsername') ? sonatypeUsername : System.getenv('sonatypeUsername')
+            def password = hasProperty('sonatypePassword') ? sonatypePassword : System.getenv('sonatypePassword')
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: user, password: password)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: user, password: password)
+            }
+
+            pom.project {
+                name 'strategize'
+                packaging 'jar'
+                description 'Strategize is a library for learning strategy executions'
+                url 'https://github.com/atyagi/strategize'
+
+                scm {
+                    url 'scm:git@github.com:atyagi/strategize.git'
+                    connection 'scm:git@github.com:atyagi/strategize.git'
+                    developerConnection 'scm:git@github.com:atyagi/strategize.git'
+                }
+
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'atyagi'
+                        name 'Ankit Tyagi'
+                    }
+                }
+            }
+        }
+    }
 }

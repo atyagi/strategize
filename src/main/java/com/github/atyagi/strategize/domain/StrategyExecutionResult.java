@@ -122,6 +122,13 @@ public class StrategyExecutionResult<R> {
     }
 
     /**
+     * @return The number of executions that ran
+     */
+    public int getExecutionCount() {
+        return getAllExecutedClasses().size();
+    }
+
+    /**
      * @return The raw results map container, all {@link CompletableFuture}
      * need to be resolved
      */
